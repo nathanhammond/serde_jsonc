@@ -51,6 +51,52 @@ fn test_json_stream_newlines() {
 }
 
 #[test]
+fn test_json_stream_inline_comment() {
+    let data = "//\n{//\n\"x\"//\n://\n42//\n}//\n//";
+
+    test_stream!(data, Value, |stream| {
+        assert_eq!(stream.next().unwrap().unwrap()["x"], 42);
+        assert_eq!(stream.byte_offset(), 23);
+
+        assert!(stream.next().is_none());
+        assert_eq!(stream.byte_offset(), 28);
+    });
+}
+
+#[test]
+fn test_json_stream_invalid_inline_comment() {
+    let data = "{/\n\"x\":42}";
+
+    test_stream!(data, Value, |stream| {
+        assert_eq!(stream.next().unwrap().is_err(), true);
+        assert_eq!(stream.byte_offset(), 0);
+    });
+}
+
+#[test]
+fn test_json_stream_block_comment() {
+    let data = "/**/{/**/\"x\"/**/:/**/42/**/}/**/";
+
+    test_stream!(data, Value, |stream| {
+        assert_eq!(stream.next().unwrap().unwrap()["x"], 42);
+        assert_eq!(stream.byte_offset(), 28);
+
+        assert!(stream.next().is_none());
+        assert_eq!(stream.byte_offset(), 32);
+    });
+}
+
+#[test]
+fn test_json_stream_invalid_block_comment() {
+    let data = "{/*\"x\":42}";
+
+    test_stream!(data, Value, |stream| {
+        assert_eq!(stream.next().unwrap().is_err(), true);
+        assert_eq!(stream.byte_offset(), 0);
+    });
+}
+
+#[test]
 fn test_json_stream_trailing_whitespaces() {
     let data = "{\"x\":42} \t\n";
 

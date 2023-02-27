@@ -244,6 +244,62 @@ impl<'de, R: Read<'de>> Deserializer<R> {
         Error::syntax(reason, position.line, position.column)
     }
 
+    /// Returns the first non-comment byte without consuming it, or `None` if
+    /// EOF is encountered.
+    fn parse_comment(&mut self) -> Result<Option<u8>> {
+        // Move the cursor after the first slash.
+        self.eat_char();
+
+        match tri!(self.peek()) {
+            Some(b'/') => self.parse_line_comment(),
+            Some(b'*') => self.parse_block_comment(),
+
+            // Random bad `/` in a whitespace position.
+            // Lie, false rewind.
+            // FIXME: Actually rewind?
+            _ => Ok(Some(b'/')),
+        }
+    }
+
+    fn parse_line_comment(&mut self) -> Result<Option<u8>> {
+        // Eat the second character of the prefix.
+        self.eat_char();
+        loop {
+            match tri!(self.peek()) {
+                Some(b'\r') | Some(b'\n') => {
+                    self.eat_char();
+                    return self.parse_whitespace();
+                }
+                Some(_) => self.eat_char(),
+                None => return self.parse_whitespace(),
+            };
+        }
+    }
+
+    fn parse_block_comment(&mut self) -> Result<Option<u8>> {
+        // Eat the second character of the prefix.
+        self.eat_char();
+
+        // Try to find the suffix.
+        loop {
+            match tri!(self.peek()) {
+                Some(b'*') => {
+                    self.eat_char();
+                    match tri!(self.peek()) {
+                        Some(b'/') => {
+                            self.eat_char();
+                            return self.parse_whitespace();
+                        }
+                        Some(_) => self.eat_char(),
+                        None => return self.parse_whitespace(),
+                    }
+                }
+                Some(_) => self.eat_char(),
+                None => return self.parse_whitespace(),
+            };
+        }
+    }
+
     /// Returns the first non-whitespace byte without consuming it, or `None` if
     /// EOF is encountered.
     fn parse_whitespace(&mut self) -> Result<Option<u8>> {
@@ -251,6 +307,10 @@ impl<'de, R: Read<'de>> Deserializer<R> {
             match tri!(self.peek()) {
                 Some(b' ' | b'\n' | b'\t' | b'\r') => {
                     self.eat_char();
+                }
+                // Treat comments as whitespace.
+                Some(b'/') => {
+                    return self.parse_comment();
                 }
                 other => {
                     return Ok(other);
