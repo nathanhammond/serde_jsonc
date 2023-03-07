@@ -1,5 +1,5 @@
 [package]
-name = "serde_json"
+name = "serde_jsonc"
 version = "1.0.94" # remember to update html_root_url
 authors = ["Erick Tryzelaar <erick.tryzelaar@gmail.com>", "David Tolnay <dtolnay@gmail.com>"]
 categories = ["encoding", "parser-implementations", "no-std"]
@@ -32,6 +32,7 @@ trybuild = { version = "1.0.49", features = ["diff"] }
 members = ["tests/crate"]
 
 [lib]
+doctest = false
 doc-scrape-examples = false
 
 [package.metadata.docs.rs]

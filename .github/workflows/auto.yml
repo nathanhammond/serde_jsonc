@@ -1,0 +1,33 @@
+name: Automated Fork
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: jsonc
+      - run: |
+          git remote add serde_json https://github.com/serde-rs/json.git
+          git fetch serde_json --tags
+          git switch serde_json/master -c master
+          git push --force --set-upstream origin master
+          git checkout jsonc
+          git rebase master -C0
+          git push --all --force
+
+  release:
+    needs: ["sync-upstream"]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+        sed -i "s/serde_json::/serde_jsonc::/g" tests/**/*.rs
+        sed -i "s/serde_jsonc::/serde_json::/g" tests/crate/**/*.rs
+        cargo test
+        cargo package
+        cargo publish --dry-run
