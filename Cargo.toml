@@ -1,5 +1,5 @@
 [package]
-name = "serde_json"
+name = "serde_jsonc"
 version = "1.0.125"
 authors = ["Erick Tryzelaar <erick.tryzelaar@gmail.com>", "David Tolnay <dtolnay@gmail.com>"]
 categories = ["encoding", "parser-implementations", "no-std"]
@@ -30,6 +30,7 @@ serde_stacker = "0.1.8"
 trybuild = { version = "1.0.81", features = ["diff"] }
 
 [lib]
+doctest = false
 doc-scrape-examples = false
 
 [package.metadata.docs.rs]
