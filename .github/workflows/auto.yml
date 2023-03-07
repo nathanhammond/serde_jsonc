@@ -1,0 +1,45 @@
+name: Automated Fork
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync-upstream:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: "${{ secrets.CARGO_REGISTRY_TOKEN }}"
+      GITHUB_TOKEN: "${{ secrets.SERDE_JSONC }}"
+    steps:
+      - name: Configure git
+        run: |
+          git config --global user.email "github.com@nathanhammond.com"
+          git config --global user.name "Nathan Hammond"
+
+      - name: Clone serde_jsonc
+        uses: actions/checkout@v3
+        with:
+          token: "${{ secrets.SERDE_JSONC }}"
+          ref: jsonc
+          fetch-depth: 0
+
+      - name: Configure serde_json remote
+        run: |
+          git remote add serde_json https://github.com/serde-rs/json.git
+          git fetch serde_json --tags
+          git switch serde_json/master -c master
+          git push --force --set-upstream origin master
+          git checkout jsonc
+
+      - name: Publish all unreleased versions
+        run: |
+          LATEST_VERSION=`curl https://crates.io/api/v1/crates/serde_jsonc | jq -cr ".versions[0].num | split(\".\") | map(tonumber)"`
+          TO_PUBLISH=`curl https://crates.io/api/v1/crates/serde_json | jq -r ".versions[].num | split(\"-\")[0] | split(\".\") | map(tonumber) | select(. > $LATEST_VERSION) | join(\".\")" | sort -V`
+          if [[ -n $TO_PUBLISH ]]; then echo $TO_PUBLISH | while read VERSION; do git checkout v$VERSION -f && git diff `git merge-base master jsonc`..jsonc | git apply -C0 && sed -i "s/serde_json::/serde_jsonc::/g" `find tests -path crate -prune -o -name '*.rs'` && cargo test && cargo publish --allow-dirty && git reset --hard && git clean -fdx; done; fi
+
+      - name: Float the patch back to the top
+        run: |
+          git checkout jsonc
+          git rebase -C0 master
+          git push --all --force
