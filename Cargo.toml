@@ -4,11 +4,11 @@ version = "1.0.107" # remember to update html_root_url
 authors = ["Erick Tryzelaar <erick.tryzelaar@gmail.com>", "David Tolnay <dtolnay@gmail.com>"]
 categories = ["encoding", "parser-implementations", "no-std"]
 description = "A JSON serialization file format"
-documentation = "https://docs.rs/serde_json"
+documentation = "https://docs.rs/serde_jsonc"
 edition = "2021"
 keywords = ["json", "serde", "serialization"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/serde-rs/json"
+repository = "https://github.com/nathanhammond/serde_jsonc"
 rust-version = "1.56"
 
 [dependencies]
